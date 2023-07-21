@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chatbot Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .chat-container {
+      max-width: 600px;
+      margin: 20px auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+    }
+
+    .chat-box {
+      min-height: 300px;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .message-input {
+      display: flex;
+      align-items: center;
+    }
+
+    #message {
+      flex-grow: 1;
+      padding: 5px;
+    }
+
+    #send-btn {
+      margin-left: 10px;
+    }
+
+    .message.bot {
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-box" id="chat-box">
+      <div class="message bot">Hello! I am your chatbot. Ask me a question.</div>
+    </div>
+    <div class="message-input">
+      <input type="text" id="message" placeholder="Type your question...">
+      <button id="send-btn">Send</button>
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      const chatBox = $('#chat-box');
+      const messageInput = $('#message');
+      const sendButton = $('#send-btn');
+
+      // Function to add a new message to the chat box
+      function addMessage(message, isBot) {
+        const className = isBot ? 'bot' : 'self';
+        const msgElement = $('<div class="message ' + className + '">' + message + '</div>');
+        chatBox.append(msgElement);
+        chatBox.scrollTop(chatBox.prop("scrollHeight"));
+      }
+
+      // Function to get a random bot response from an external API (JSONPlaceholder in this case)
+      async function getBotResponse(question) {
+        const apiUrl = 'https://jsonplaceholder.typicode.com/posts/1'; // Replace with your actual chatbot API endpoint
+        const response = await $.ajax({
+          type: 'POST',
+          url: 'http://localhost:3000/ask', // Replace with the URL of your server
+          data: JSON.stringify({ question }),
+          contentType: 'application/json',
+        });
+        return response.response;
+      }
+
+      // Event listener for Send button click
+      sendButton.on('click', async function () {
+        const userQuestion = messageInput.val().trim();
+        if (userQuestion !== '') {
+          addMessage('You: ' + userQuestion, false);
+          messageInput.val('');
+
+          // Get the bot response and add it to the chat box
+          try {
+            const botResponse = await getBotResponse(userQuestion);
+            addMessage('Bot: ' + botResponse, true);
+          } catch (error) {
+            addMessage('Bot: An error occurred while fetching the response.', true);
+          }
+        }
+      });
+
+      // Event listener for Enter key press in the message input
+      messageInput.on('keypress', function (event) {
+        if (event.which === 13) {
+          sendButton.trigger('click');
+        }
+      });
+    });
+  </script>
+
+  <script>
+    const express = require('express');
+    const axios = require('axios');
+
+    const app = express();
+    const port = 3000;
+
+    // Middleware to parse incoming JSON data
+    app.use(express.json());
+
+    // Route to handle user questions
+    app.post('/ask', async (req, res) => {
+      try {
+        const userQuestion = req.body.question;
+        const botResponse = await getBotResponse(userQuestion);
+        res.json({ response: botResponse });
+      } catch (error) {
+        res.status(500).json({ error: 'An error occurred while fetching the response.' });
+      }
+    });
+
+    // Function to get a random bot response from an external API (JSONPlaceholder in this case)
+    async function getBotResponse(question) {
+      const apiUrl = 'https://jsonplaceholder.typicode.com/posts/1'; // Replace with your actual chatbot API endpoint
+      const response = await axios.get(apiUrl);
+      return response.data.title;
+    }
+
+    // Start the server
+    app.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}`);
+    });
+  </script>
+</body>
+</html>
